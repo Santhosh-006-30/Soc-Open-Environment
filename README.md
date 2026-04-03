@@ -1,3 +1,13 @@
+---
+title: SOC OpenEnv
+emoji: 🛡️
+colorFrom: blue
+colorTo: red
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 <div align="center">
 
 # 🛡️ SOC OpenEnv
