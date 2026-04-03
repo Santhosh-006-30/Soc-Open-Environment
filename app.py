@@ -30,6 +30,10 @@ _env = SOCEnvironment()
 # Request / Response schemas
 # ---------------------------------------------------------------------------
 
+class ResetRequest(BaseModel):
+    task: str = "phishing_detection"
+
+
 class StepRequest(BaseModel):
     action: str
     parameters: Dict[str, Any] = {}
@@ -83,10 +87,21 @@ def list_tasks():
 
 
 @app.get("/reset", response_model=ResetResponse, tags=["environment"])
-def reset(task: str = Query(default="phishing_detection", description="Task name")):
-    """Reset the environment to the given task."""
+def reset_get(task: str = Query(default="phishing_detection", description="Task name")):
+    """Reset the environment to the given task (GET)."""
+    return _do_reset(task)
+
+
+@app.post("/reset", response_model=ResetResponse, tags=["environment"])
+def reset_post(request: ResetRequest = ResetRequest()):
+    """Reset the environment to the given task (POST)."""
+    return _do_reset(request.task)
+
+
+def _do_reset(task_name: str) -> ResetResponse:
+    """Shared reset logic."""
     try:
-        obs = _env.reset(task_name=task)
+        obs = _env.reset(task_name=task_name)
     except KeyError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return ResetResponse(observation=obs.model_dump())
