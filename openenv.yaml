@@ -83,6 +83,8 @@ server:
     - method: GET
       path: /reset
     - method: POST
+      path: /reset
+    - method: POST
       path: /step
     - method: GET
       path: /state

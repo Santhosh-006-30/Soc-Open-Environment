@@ -5,7 +5,7 @@ Runs the agent through all tasks, using rule-based reasoning with LLM fallback.
 Required environment variables:
   API_BASE_URL   – OpenAI-compatible API base URL
   MODEL_NAME     – model identifier
-  OPENAI_API_KEY – API key
+  HF_TOKEN       – Hugging Face API token
 """
 
 from __future__ import annotations
