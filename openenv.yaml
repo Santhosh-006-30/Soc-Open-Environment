@@ -1,0 +1,90 @@
+name: soc-openenv
+description: >
+  OpenEnv-compatible Security Operations Center (SOC) training environment.
+  Simulates phishing detection, malware investigation, and multi-stage APT
+  attack response with MITRE ATT&CK integration, dynamic risk scoring,
+  and dense reward design.
+
+version: "1.0.0"
+author: SOC OpenEnv Team
+
+environment:
+  module: env.environment
+  class: SOCEnvironment
+  methods:
+    reset: reset
+    step: step
+    state: state
+
+models:
+  observation:
+    module: env.models
+    class: Observation
+  action:
+    module: env.models
+    class: Action
+  reward:
+    module: env.models
+    class: Reward
+
+tasks:
+  - name: phishing_detection
+    difficulty: easy
+    description: Detect and respond to a phishing email targeting a corporate user.
+    max_steps: 12
+
+  - name: malware_investigation
+    difficulty: medium
+    description: Investigate malware with C2 beaconing and DNS-tunnel exfiltration.
+    max_steps: 16
+
+  - name: attack_chain_response
+    difficulty: hard
+    description: >
+      Respond to a multi-stage APT: spearphishing → credential access →
+      lateral movement → privilege escalation → data exfiltration.
+    max_steps: 25
+
+grading:
+  module: env.graders
+  class: SOCGrader
+  scoring:
+    range: [0.0, 1.0]
+    components:
+      - name: correctness
+        weight: 0.40
+      - name: sequence
+        weight: 0.30
+      - name: completeness
+        weight: 0.20
+      - name: efficiency
+        weight: 0.10
+
+features:
+  mitre_attack: true
+  risk_scoring: true
+  sequential_decisions: true
+  action_history: true
+  time_penalty: true
+  multi_alert_correlation: true
+
+inference:
+  script: inference.py
+  env_vars:
+    - API_BASE_URL
+    - MODEL_NAME
+    - OPENAI_API_KEY
+
+server:
+  module: app
+  framework: fastapi
+  port: 7860
+  endpoints:
+    - method: GET
+      path: /reset
+    - method: POST
+      path: /step
+    - method: GET
+      path: /state
+    - method: GET
+      path: /tasks
