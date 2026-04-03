@@ -215,9 +215,9 @@ docker run -p 7860:7860 soc-openenv
 
 # With LLM support
 docker run -p 7860:7860 \
-  -e API_BASE_URL=https://api.openai.com/v1 \
-  -e MODEL_NAME=gpt-3.5-turbo \
-  -e OPENAI_API_KEY=sk-... \
+  -e API_BASE_URL=https://api-inference.huggingface.co/v1 \
+  -e MODEL_NAME=mistralai/Mistral-7B-Instruct-v0.3 \
+  -e HF_TOKEN=hf_... \
   soc-openenv
 ```
 
@@ -284,9 +284,9 @@ soc-openenv/
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `API_BASE_URL` | No | `https://api.openai.com/v1` | OpenAI-compatible API endpoint |
-| `MODEL_NAME` | No | `gpt-3.5-turbo` | Model identifier |
-| `OPENAI_API_KEY` | No | — | API key (rule-based works without it) |
+| `API_BASE_URL` | No | `https://api-inference.huggingface.co/v1` | OpenAI-compatible API endpoint |
+| `MODEL_NAME` | No | `mistralai/Mistral-7B-Instruct-v0.3` | Model identifier |
+| `HF_TOKEN` | No | — | Hugging Face token (rule-based works without it) |
 
 ---
 

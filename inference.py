@@ -30,13 +30,13 @@ from env.tasks import TaskRegistry
 # Configuration
 # ---------------------------------------------------------------------------
 
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api-inference.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 client: Optional[OpenAI] = None
-if OPENAI_API_KEY:
-    client = OpenAI(api_key=OPENAI_API_KEY, base_url=API_BASE_URL)
+if HF_TOKEN:
+    client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
 
 
 # ---------------------------------------------------------------------------
