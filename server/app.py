@@ -152,10 +152,10 @@ def get_state():
 # Entry point for [project.scripts]
 # ---------------------------------------------------------------------------
 
-def start_server():
+def main():
     """Entry point for the soc-server script."""
     uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False)
 
 
 if __name__ == "__main__":
-    start_server()
+    main()
