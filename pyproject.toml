@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "soc-openenv"
+version = "1.0.0"
+description = "OpenEnv-compatible Security Operations Center training environment"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "SOC OpenEnv Team" }
+]
+keywords = ["openenv", "cybersecurity", "soc", "rl", "mitre", "ai"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.5.0",
+    "openai>=1.6.0",
+    "httpx>=0.25.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "httpx>=0.25.0"]
+
+[project.urls]
+Homepage = "https://huggingface.co/spaces/Incassable/SOC-OpenEnv"
+Repository = "https://github.com/Sanjeyj/Soc-OpenEnv"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["env*"]
+
+[project.scripts]
+soc-inference = "inference:main"
