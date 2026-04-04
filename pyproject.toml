@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "soc-openenv"
@@ -27,6 +27,7 @@ dependencies = [
     "openai>=1.6.0",
     "httpx>=0.25.0",
     "pyyaml>=6.0",
+    "openenv-core>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -38,7 +39,8 @@ Repository = "https://github.com/Sanjeyj/Soc-OpenEnv"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["env*"]
+include = ["env*", "server*"]
 
 [project.scripts]
 soc-inference = "inference:main"
+soc-server = "server.app:start_server"
