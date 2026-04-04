@@ -43,4 +43,6 @@ include = ["env*", "server*"]
 
 [project.scripts]
 soc-inference = "inference:main"
+inference = "inference:main"
 soc-server = "server.app:main"
+server = "server.app:main"
