@@ -104,6 +104,57 @@ _CLOSING_ACTIONS = [
 ]
 
 
+def _intent_based_action(obs: Observation) -> Optional[ActionType]:
+    """Prioritise actions based on alert type and risk profile."""
+    desc = obs.current_alert.description.lower()
+    alert_type = obs.current_alert.alert_type.value.lower()
+    history = set(obs.action_history)
+
+    def first_available(candidates: List[ActionType]) -> Optional[ActionType]:
+        for candidate in candidates:
+            if candidate.value not in history:
+                return candidate
+        return None
+
+    if obs.risk_score > 7.0:
+        mitigation_priority = [
+            ActionType.ISOLATE_HOST,
+            ActionType.BLOCK_IP,
+            ActionType.BLOCK_DOMAIN,
+            ActionType.QUARANTINE_FILE,
+            ActionType.REVOKE_CREDENTIALS,
+        ]
+        mitigation_choice = first_available(mitigation_priority)
+        if mitigation_choice is not None:
+            return mitigation_choice
+
+    if "phishing" in alert_type or "email" in desc or "spf" in desc or "dkim" in desc:
+        return first_available([
+            ActionType.ANALYZE_EMAIL,
+            ActionType.CHECK_SENDER_REPUTATION,
+            ActionType.SCAN_URL,
+            ActionType.ANALYZE_ATTACHMENT,
+        ])
+
+    if "credential" in alert_type or "login" in desc or "authentication" in desc:
+        return first_available([
+            ActionType.ESCALATE_INCIDENT,
+            ActionType.DISABLE_ACCOUNT,
+            ActionType.REVOKE_CREDENTIALS,
+            ActionType.CHECK_LOGS,
+        ])
+
+    if "privilege" in alert_type or "lateral" in alert_type or "rdp" in desc or "psexec" in desc:
+        return first_available([
+            ActionType.ISOLATE_HOST,
+            ActionType.BLOCK_IP,
+            ActionType.CORRELATE_ALERTS,
+            ActionType.QUERY_THREAT_INTEL,
+        ])
+
+    return None
+
+
 def _rule_based_action(obs: Observation, step_idx: int) -> Optional[ActionType]:
     """Pick an action using keyword matching on the current alert description."""
     desc = obs.current_alert.description.lower()
@@ -187,7 +238,11 @@ def _llm_action(obs: Observation) -> Optional[ActionType]:
 # ---------------------------------------------------------------------------
 
 def choose_action(obs: Observation, step_idx: int) -> ActionType:
-    """Pick the best action: rule-based first, LLM fallback second."""
+    """Pick the best action: intent-based first, rule-based second, LLM fallback third."""
+    action = _intent_based_action(obs)
+    if action is not None:
+        return action
+
     action = _rule_based_action(obs, step_idx)
     if action is not None:
         return action

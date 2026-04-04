@@ -45,6 +45,7 @@ class SOCEnvironment:
         self._done: bool = True
         self._total_reward: float = 0.0
         self._context: Dict[str, Any] = {}
+        self.timeline: List[str] = []
 
     # ------------------------------------------------------------------
     # reset
@@ -62,6 +63,7 @@ class SOCEnvironment:
         self._done = False
         self._total_reward = 0.0
         self._context = dict(self._task.context)
+        self.timeline = []
 
         return self._build_observation()
 
@@ -78,6 +80,10 @@ class SOCEnvironment:
 
         self._step_count += 1
         self._action_history.append(action.action_type)
+
+        # Track the incident lifecycle in a timeline for richer observation.
+        alert_label = self._alerts[self._current_alert_idx].alert_type.value
+        self.timeline.append(f"Step {self._step_count}: {alert_label} detected")
 
         # Compute reward
         reward = self._compute_reward(action)
@@ -137,7 +143,28 @@ class SOCEnvironment:
         partial_map = self._task.partial_credit_actions
         idx = self._step_count - 1  # 0-based position
 
-        # 1. Action-alignment reward
+        # 1. Base reward and alignment
+        base_reward = 0.1
+        breakdown["base"] = round(base_reward, 4)
+
+        mitigation_actions = {
+            ActionType.ISOLATE_HOST,
+            ActionType.BLOCK_IP,
+            ActionType.BLOCK_DOMAIN,
+            ActionType.QUARANTINE_FILE,
+            ActionType.REVOKE_CREDENTIALS,
+            ActionType.DISABLE_ACCOUNT,
+        }
+        mitigation_bonus = 0.3 if action.action_type in mitigation_actions else 0.0
+        breakdown["mitigation_bonus"] = round(mitigation_bonus, 4)
+
+        if action.action_type == ActionType.IGNORE:
+            ignore_penalty = -0.5
+            breakdown["ignore_penalty"] = round(ignore_penalty, 4)
+        else:
+            ignore_penalty = 0.0
+            breakdown["ignore_penalty"] = 0.0
+
         if idx < len(optimal) and action.action_type == optimal[idx]:
             alignment = 1.0
             msg = "Optimal action"
@@ -148,14 +175,12 @@ class SOCEnvironment:
             alignment = -0.5
             msg = "Harmful: threat ignored"
         else:
-            # Not in partial set but not harmful
             alignment = 0.1 if action.action_type in set(optimal) else -0.1
             msg = "Sub-optimal action"
         breakdown["alignment"] = round(alignment, 4)
 
-        # 2. Time penalty — grows each step
-        time_ratio = self._step_count / max(self._task.max_steps, 1)
-        time_penalty = -0.05 * time_ratio
+        # 2. Time penalty — only after the first few steps
+        time_penalty = -0.05 if self._step_count > 2 else 0.0
         breakdown["time_penalty"] = round(time_penalty, 4)
 
         # 3. Severity bonus — higher for critical-alert actions
@@ -172,7 +197,23 @@ class SOCEnvironment:
             sev_bonus = 0.0
             breakdown["severity_bonus"] = 0.0
 
-        # 4. Chain-completion bonus when done
+        # 4. Risk-aware penalty
+        risk_penalty = 0.0
+        risk_score = self._risk.compute(
+            current_alert=current_alert,
+            pending_alerts=len(self._alerts) - self._current_alert_idx - 1,
+            step_count=self._step_count,
+            max_steps=self._task.max_steps if self._task else 20,
+            mitre_weight=self._mitre.technique_for_alert_type(current_alert.alert_type.value).severity_weight
+            if self._mitre.technique_for_alert_type(current_alert.alert_type.value)
+            else 0.5,
+            resolved_count=self._resolved_alerts,
+        )
+        if risk_score > 7 and action.action_type not in mitigation_actions:
+            risk_penalty = -0.4
+        breakdown["risk_penalty"] = round(risk_penalty, 4)
+
+        # 5. Chain-completion bonus when done
         chain_bonus = 0.0
         if self._done or (
             self._resolved_alerts >= len(self._alerts)
@@ -182,7 +223,7 @@ class SOCEnvironment:
             chain_bonus = grade.get("total", 0.0) * 2.0  # up to +2.0
             breakdown["chain_completion"] = round(chain_bonus, 4)
 
-        total = alignment + time_penalty + sev_bonus + chain_bonus
+        total = base_reward + mitigation_bonus + ignore_penalty + alignment + time_penalty + sev_bonus + risk_penalty + chain_bonus
 
         return Reward(
             value=round(total, 4),
@@ -219,6 +260,7 @@ class SOCEnvironment:
             mitre_technique=current_alert.mitre_technique_id,
             available_actions=[a.value for a in ActionType],
             context=self._context,
+            timeline=list(self.timeline),
             done=self._done,
         )
 

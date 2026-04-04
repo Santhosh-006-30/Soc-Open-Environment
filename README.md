@@ -121,6 +121,40 @@ pinned: false
 
 ---
 
+## Attack Lifecycle Simulation
+
+SOC OpenEnv models a realistic cybersecurity kill chain through a graduated alert stream. The environment supports sequential task progression from phishing reconnaissance through credential compromise, lateral movement, privilege escalation, and exfiltration. Each alert stage is linked to actual MITRE ATT&CK techniques, forcing agents to reason across incident phases rather than treating alerts independently.
+
+## Reward Philosophy
+
+The reward system is designed for stable training and meaningful baseline behavior:
+
+- **Partial rewards** for acceptable but non-optimal actions.
+- **Correct step reward** for exact action alignment with the attack stage.
+- **Time penalties** after the first few steps, encouraging fast mitigation.
+- **Risk-aware penalties** when high-risk incidents are not mitigated.
+- **Sequence importance** is enforced through grading and chain-completion bonuses.
+
+## Why This Environment Matters
+
+This environment is built to reflect real-world SOC priorities:
+
+- Realistic multi-step intrusion scenarios with chained alerts
+- Emphasis on risk-based prioritization rather than simple checklist behavior
+- Support for both investigation and containment decision-making
+- A deterministic grader that rewards consistency, completeness, and efficient response
+
+## Future Extensions
+
+Planned enhancements for the next evolution of the environment:
+
+- **SIEM integration** for richer alert correlation and event context
+- **MITRE scoring** for technique-specific performance metrics
+- **Autonomous agents** with policy learning over multi-stage attacks
+- **External detection feeds** and adaptive attacker behavior
+
+---
+
 ## 🎬 Action Space
 
 | Category | Actions |
@@ -247,12 +281,12 @@ Scores achieved by the built-in rule-based agent (no LLM):
 
 | Task | Score | Difficulty |
 |------|-------|------------|
-| `phishing_detection` | **0.82** | 🟢 Easy |
-| `malware_investigation` | **0.74** | 🟡 Medium |
-| `attack_chain_response` | **0.65** | 🔴 Hard |
-| **Average** | **0.74** | — |
+| `phishing_detection` | **0.8329** | 🟢 Easy |
+| `malware_investigation` | **0.7400** | 🟡 Medium |
+| `attack_chain_response` | **0.4816** | 🔴 Hard |
+| **Average** | **0.6848** | — |
 
-*Scores may vary slightly based on keyword matching; LLM-augmented agents typically score 0.85+.*
+*Scores may vary with environment dynamics and agent strategy. High-performing systems can improve sequence and risk-aware mitigation.*
 
 ---
 

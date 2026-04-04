@@ -95,6 +95,7 @@ class Observation(BaseModel):
     mitre_technique: Optional[str] = None
     available_actions: List[str] = Field(default_factory=list)
     context: Dict[str, Any] = Field(default_factory=dict)
+    timeline: List[str] = Field(default_factory=list)
     done: bool = False
 
 

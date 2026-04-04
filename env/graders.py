@@ -13,12 +13,12 @@ class SOCGrader:
 
     Scoring axes
     -------------
-    1. **Correctness** (40 %) — how many actions match the optimal / partial-credit set.
-    2. **Sequence**    (30 %) — how well the agent followed the expected ordering.
-    3. **Completeness** (20 %) — fraction of the optimal chain that was covered.
-    4. **Efficiency**  (10 %) — penalty for superfluous or harmful actions.
+    1. **Correctness** (40 %) — step-level exact and partial credit.
+    2. **Sequence**    (30 %) — attack-chain ordering and full-sequence bonus.
+    3. **Completeness** (20 %) — whether the expected chain was covered.
+    4. **Efficiency**  (10 %) — penalty for wrong, harmful, or excess actions.
 
-    All evaluation is deterministic — no randomness.
+    All evaluation is deterministic and designed for SOC lifecycle reasoning.
     """
 
     WEIGHT_CORRECTNESS = 0.40
@@ -63,52 +63,65 @@ class SOCGrader:
     # ------------------------------------------------------------------
 
     def _score_correctness(self, actions: List[ActionType]) -> float:
-        """Fraction of agent actions that appear in optimal or partial-credit sets."""
+        """Exact matches get full credit, partial matches get partial credit."""
         if not actions:
             return 0.0
 
-        optimal_set = set(self._task.optimal_actions)
-        partial_sets = self._task.partial_credit_actions
+        optimal = self._task.optimal_actions
+        partial = self._task.partial_credit_actions
+        score = 0.0
 
-        correct = 0
         for idx, action in enumerate(actions):
-            if action in optimal_set:
-                correct += 1.0
-            elif idx in partial_sets and action in partial_sets[idx]:
-                correct += 0.7  # partial credit
-            elif action not in self._HARMFUL_ACTIONS:
-                correct += 0.1  # small credit for reasonable but suboptimal
+            if idx < len(optimal) and action == optimal[idx]:
+                score += 0.4
+            elif idx in partial and action in partial[idx]:
+                score += 0.2
+            elif action in optimal:
+                score += 0.1
+            elif action in self._HARMFUL_ACTIONS:
+                score -= 0.3
+            else:
+                score += 0.0
 
-        return min(correct / max(len(self._task.optimal_actions), 1), 1.0)
+        max_score = max(len(optimal) * 0.4, 1.0)
+        return min(max(score / max_score, 0.0), 1.0)
 
     def _score_sequence(self, actions: List[ActionType]) -> float:
-        """Measure ordering alignment with optimal sequence using LCS ratio."""
+        """Measure ordering alignment with optimal sequence using LCS + bonus."""
         optimal = self._task.optimal_actions
         if not actions or not optimal:
             return 0.0
 
         lcs_len = self._lcs_length(actions, optimal)
-        return lcs_len / len(optimal)
+        ratio = lcs_len / len(optimal)
+        if lcs_len == len(optimal) and len(actions) >= len(optimal):
+            ratio += 0.5
+        return min(ratio, 1.0)
 
     def _score_completeness(self, actions: List[ActionType]) -> float:
         """Fraction of optimal actions that the agent performed at least once."""
-        if not self._task.optimal_actions:
+        optimal_set = set(self._task.optimal_actions)
+        if not optimal_set:
             return 1.0
 
-        optimal_set = set(self._task.optimal_actions)
         covered = optimal_set.intersection(set(actions))
-        return len(covered) / len(optimal_set)
+        return min(len(covered) / len(optimal_set), 1.0)
 
     def _score_efficiency(self, actions: List[ActionType]) -> float:
-        """Penalise wasted or harmful actions. 1.0 = perfectly efficient."""
+        """Penalise wrong, harmful, and excess actions to keep chains tight."""
         if not actions:
             return 0.0
 
         harmful_count = sum(1 for a in actions if a in self._HARMFUL_ACTIONS)
-        optimal_len = len(self._task.optimal_actions)
-        excess = max(len(actions) - optimal_len, 0)
-
-        penalty = harmful_count * 0.15 + excess * 0.05
+        wrong_count = sum(
+            1
+            for idx, action in enumerate(actions)
+            if action not in self._task.optimal_actions
+            and idx not in self._task.partial_credit_actions
+            and action not in self._HARMFUL_ACTIONS
+        )
+        excess = max(len(actions) - len(self._task.optimal_actions), 0)
+        penalty = harmful_count * 0.3 + wrong_count * 0.1 + excess * 0.1
         return max(1.0 - penalty, 0.0)
 
     # ------------------------------------------------------------------
