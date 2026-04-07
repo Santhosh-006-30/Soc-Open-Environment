@@ -3,9 +3,9 @@
 Runs the agent through all tasks, using rule-based reasoning with LLM fallback.
 
 Required environment variables:
-  API_BASE_URL   – OpenAI-compatible API base URL
+  API_BASE_URL   – OpenAI-compatible API base URL (LiteLLM proxy)
+  API_KEY        – API key for LiteLLM proxy
   MODEL_NAME     – model identifier
-  HF_TOKEN       – Hugging Face API token
 """
 
 from __future__ import annotations
@@ -30,13 +30,13 @@ from env.tasks import TaskRegistry
 # Configuration
 # ---------------------------------------------------------------------------
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api-inference.huggingface.co/v1")
+# Use injected environment variables for LiteLLM proxy
+API_BASE_URL = os.environ["API_BASE_URL"]
+API_KEY = os.environ["API_KEY"]
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3")
-HF_TOKEN = os.getenv("HF_TOKEN")
 
-client: Optional[OpenAI] = None
-if HF_TOKEN:
-    client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
+# Initialize OpenAI client with LiteLLM proxy credentials
+client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
 
 
 # ---------------------------------------------------------------------------
@@ -195,9 +195,6 @@ def _rule_based_action(obs: Observation, step_idx: int) -> Optional[ActionType]:
 
 def _llm_action(obs: Observation) -> Optional[ActionType]:
     """Ask the LLM to pick the next action."""
-    if client is None:
-        return None
-
     available = obs.available_actions
     prompt = (
         f"You are a SOC analyst AI. Current alert:\n"
