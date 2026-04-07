@@ -93,7 +93,7 @@ def reset_get(task: str = Query(default="phishing_detection", description="Task 
 
 
 @app.post("/reset", response_model=ResetResponse, tags=["environment"])
-def reset_post(request: ResetRequest = ResetRequest()):
+def reset_post(request: ResetRequest):
     """Reset the environment to the given task (POST)."""
     return _do_reset(request.task)
 
