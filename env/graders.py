@@ -84,33 +84,33 @@ class SOCGrader:
                 score += 0.0
 
         max_score = max(len(optimal) * 0.4, 1.0)
-        return min(max(score / max_score, 0.0), 1.0)
+        return min(max(score / max_score, 0.001), 0.999)
 
     def _score_sequence(self, actions: List[ActionType]) -> float:
         """Measure ordering alignment with optimal sequence using LCS + bonus."""
         optimal = self._task.optimal_actions
         if not actions or not optimal:
-            return 0.0
+            return 0.001
 
         lcs_len = self._lcs_length(actions, optimal)
         ratio = lcs_len / len(optimal)
         if lcs_len == len(optimal) and len(actions) >= len(optimal):
             ratio += 0.5
-        return min(ratio, 1.0)
+        return min(max(ratio, 0.001), 0.999)
 
     def _score_completeness(self, actions: List[ActionType]) -> float:
         """Fraction of optimal actions that the agent performed at least once."""
         optimal_set = set(self._task.optimal_actions)
         if not optimal_set:
-            return 1.0
+            return 0.999
 
         covered = optimal_set.intersection(set(actions))
-        return min(len(covered) / len(optimal_set), 1.0)
+        return min(max(len(covered) / len(optimal_set), 0.001), 0.999)
 
     def _score_efficiency(self, actions: List[ActionType]) -> float:
         """Penalise wrong, harmful, and excess actions to keep chains tight."""
         if not actions:
-            return 0.0
+            return 0.001
 
         harmful_count = sum(1 for a in actions if a in self._HARMFUL_ACTIONS)
         wrong_count = sum(
@@ -122,7 +122,7 @@ class SOCGrader:
         )
         excess = max(len(actions) - len(self._task.optimal_actions), 0)
         penalty = harmful_count * 0.3 + wrong_count * 0.1 + excess * 0.1
-        return max(1.0 - penalty, 0.0)
+        return min(max(1.0 - penalty, 0.001), 0.999)
 
     # ------------------------------------------------------------------
     # Helpers
