@@ -55,7 +55,7 @@ class SOCGrader:
             "sequence": round(sequence, 4),
             "completeness": round(completeness, 4),
             "efficiency": round(efficiency, 4),
-            "total": round(min(max(total, 0.0), 1.0), 4),
+            "total": round(min(max(total, 0.001), 0.999), 4),
         }
 
     # ------------------------------------------------------------------
