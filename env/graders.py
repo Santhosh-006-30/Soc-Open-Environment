@@ -37,13 +37,19 @@ class SOCGrader:
     # ------------------------------------------------------------------
 
     def grade(self, action_history: List[ActionType]) -> Dict[str, float]:
-        """Grade an action sequence. Returns dict with component scores + total."""
-        correctness = self._score_correctness(action_history)
-        sequence = self._score_sequence(action_history)
-        completeness = self._score_completeness(action_history)
-        efficiency = self._score_efficiency(action_history)
+        """Grade an action sequence. Returns dict with component scores + total.
+        All scores are strictly clamped to (0.001, 0.999) as required."""
 
-        total = (
+        def _clamp(v: float) -> float:
+            """Ensure score is strictly between 0 and 1 (exclusive)."""
+            return round(min(max(float(v), 0.001), 0.999), 4)
+
+        correctness = _clamp(self._score_correctness(action_history))
+        sequence = _clamp(self._score_sequence(action_history))
+        completeness = _clamp(self._score_completeness(action_history))
+        efficiency = _clamp(self._score_efficiency(action_history))
+
+        total = _clamp(
             self.WEIGHT_CORRECTNESS * correctness
             + self.WEIGHT_SEQUENCE * sequence
             + self.WEIGHT_COMPLETENESS * completeness
@@ -51,11 +57,11 @@ class SOCGrader:
         )
 
         return {
-            "correctness": round(correctness, 4),
-            "sequence": round(sequence, 4),
-            "completeness": round(completeness, 4),
-            "efficiency": round(efficiency, 4),
-            "total": round(min(max(total, 0.001), 0.999), 4),
+            "correctness": correctness,
+            "sequence": sequence,
+            "completeness": completeness,
+            "efficiency": efficiency,
+            "total": total,
         }
 
     # ------------------------------------------------------------------
@@ -65,7 +71,7 @@ class SOCGrader:
     def _score_correctness(self, actions: List[ActionType]) -> float:
         """Exact matches get full credit, partial matches get partial credit."""
         if not actions:
-            return 0.0
+            return 0.001
 
         optimal = self._task.optimal_actions
         partial = self._task.partial_credit_actions
