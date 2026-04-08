@@ -235,16 +235,18 @@ def _llm_action(obs: Observation) -> Optional[ActionType]:
 # ---------------------------------------------------------------------------
 
 def choose_action(obs: Observation, step_idx: int) -> ActionType:
-    """Pick the best action: intent-based first, rule-based second, LLM fallback third."""
+    """Pick the best action: LLM via proxy first, rule-based fallbacks second."""
+    # Always call LLM first to use the injected API_BASE_URL/API_KEY proxy
+    action = _llm_action(obs)
+    if action is not None:
+        return action
+
+    # Fall back to rule-based if LLM call fails
     action = _intent_based_action(obs)
     if action is not None:
         return action
 
     action = _rule_based_action(obs, step_idx)
-    if action is not None:
-        return action
-
-    action = _llm_action(obs)
     if action is not None:
         return action
 
